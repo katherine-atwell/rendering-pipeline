@@ -16,13 +16,9 @@ Ray::Ray() {}
 //sets origin and direction based on pixel's location in image
 Ray::Ray(double i, double j, Camera camera) {
   double d = 1;
-  //double d = abs(camera.from.z() - camera.at.z());
-  //double h = 2*tan(camera.angle/2)/d;
   double h = (camera.top - camera.bottom);
-  double x = camera.left + (j * h + h/2)/camera.resx*d; //I think we divide by resx?
-  //double y = camera.left + (i * h + h/2)/camera.resy; //ditto for resy
+  double x = camera.left + (j * h + h/2)/camera.resx*d; 
   double y = camera.top - (i * h + h/2)/camera.resy*d;
-  //double y = camera.bottom + (i * h + h/2)/camera.resy;
   double z = -1;
   Eigen::Vector3d s = x*camera.u + y*camera.v + z*camera.w;
   origin = camera.from;
@@ -49,7 +45,6 @@ Camera::Camera(Eigen::Vector3d fromInput, Eigen::Vector3d atInput, Eigen::Vector
   w = (from - at).normalized();
   u = (up.cross(w)).normalized();
   v = (w.cross(u)).normalized();
-  //aspect ratio is resx / resy
 }
 
 Shading::Shading() {}
@@ -156,10 +151,8 @@ Scene::Scene(string filename) {
   inputFile >> currShading.shine;
   inputFile >> currShading.transmittance;
   inputFile >> currShading.index_of_refraction;
-  //cout << currShading.Kd;
   inputFile.ignore(200, '\n');
   getline(inputFile, shapeString, ' ');
-  //cout << from << endl << at << endl << up << endl << angle << " " << hither << " " << resx << " " << resy;
   Camera newCamera(from, at, up, angle, hither, resx, resy);
   camera = newCamera;
   
@@ -256,22 +249,16 @@ void Scene::processVertices() {
   Eigen::Vector3d w = camera.w;
   Eigen::Vector3d e = camera.from;
   
-  /*cout << "e = " << e << endl;
-  cout << "n = " << n << endl;
-  cout << "l = " << l << endl;*/
-  
   Mvp << camera.resx/2, 0, 0, (camera.resx-1)/2,
          0, camera.resy/2, 0, (camera.resy-1)/2, 
          0, 0, 1, 0, 
          0, 0, 0, 1;
   
-  //cout << "Mvp is: " << endl << Mvp << endl << "---------" << endl;
   Mper << -2*n/(r - l), 0, -(r+l)/(r-l), 0,
           0, -2*n/(t-b), (t+b)/(t-b), 0,  
           0, 0, (f+n)/(n-f), -2*f*n/(f-n),
           0, 0, 1, 0;
   
-  //cout << "Mper is: " << endl << Mper << endl << "---------" << endl;
   cam1 << u.x(), u.y(), u.z(), 0,
           v.x(), v.y(), v.z(), 0, 
           w.x(), w.y(), w.z(), 0, 
@@ -282,10 +269,7 @@ void Scene::processVertices() {
           0, 0, 0, 1;
  
   Mcam = cam1 * cam2;
-  //cout << "Mcam is: " << endl << Mcam << endl << "---------" << endl;
   M = Mvp * Mper * Mcam;
-  
-  //cout << "M is: " << endl << M << endl << "------------------------" << endl;
   
   for (int i=0; i < (int) shapes.size(); i++) {
     shapes[i].transformVertices(M);
@@ -301,13 +285,7 @@ void Scene::rasterize() {
   processVertices();
 
   //loops through from end (greatest distance from camera) to beginning to update color of pixels
-  /*for(int i= (int) shapes.size() -1; i>=0; i--) {
-    shapes[i].rasterize(pixels);
-  }*/
-  
-  //vector<Fragment> fragments;
   for (int i=0; i < (int) shapes.size(); i++) {
-    //hopefully pixels updates? If not will pass it another way but fingers crossed  
     vector<Fragment> polygonFragments;
     polygonFragments = shapes[i].rasterize(pixels, lights, camera);
     for (int j=0; j < (int) polygonFragments.size(); j++) {
@@ -321,11 +299,6 @@ void Scene::rasterize() {
   for (int k= 0; k < (int) fragments.size(); k++) {
     pixels[fragments[k].i][fragments[k].j] = {fragments[k].color.red, fragments[k].color.green, fragments[k].color.blue};
   }
-  /*for (int i=0; i < camera.resy; i++) {
-    for (int j=0; j < camera.resx; j++) {
-      cout << pixels[i][j][0] << " " << pixels[i][j][1] << pixels[i][j][2] << endl;
-    }
-  }*/
 }
 
 //determines whether a triangle intersects with a ray
@@ -362,8 +335,7 @@ bool Triangle::intersect(const Ray &r, double t0, double t1, HitRecord *hr) {
 bool Polygon::intersect(const Ray &r, double t0, double t1, HitRecord *hr) {
   bool hit = false;
   for (int i=0; i < (int) triangles.size(); i++) {
-    if (triangles[i].intersect(r, t0, t1, hr)) {
-      //cout << "Intersects: \n" << r.origin << r.direction << endl;                                                                                                         
+    if (triangles[i].intersect(r, t0, t1, hr)) {                                                                                              
       t1 = hr->t;
       hr->c = color;
       hr->shading = shading;
@@ -409,7 +381,6 @@ Color Triangle::shadeVertex(Eigen::Vector3d vectorArg, Eigen::Vector3d normal, s
 
   Color localColor;
   int numLights = lights.size();
-  //cout << numLights << endl;
   localColor.red = 0;
   localColor.green = 0;
   localColor.blue = 0;
@@ -427,19 +398,11 @@ Color Triangle::shadeVertex(Eigen::Vector3d vectorArg, Eigen::Vector3d normal, s
   localColor.red = fmax(min(localColor.red, (double) 1), (double) 0);
   localColor.green = fmax(min(localColor.green, (double) 1), (double) 0);
   localColor.blue = fmax(min(localColor.blue, (double) 1), (double) 0);
-  /*localColor.red *= 255;
-  localColor.green *= 255;
-  localColor.blue *= 255;*/
-  
-  //cout << hr->c.red << " " << hr->c.green << " " << hr->c.blue << endl;
-  //cout << localColor.blue;
   
   return localColor;
 }
 
-void Triangle::transformVertices(Eigen::Matrix<double, 4, 4> M) {
-  //get color somewhere in here as well?
-  
+void Triangle::transformVertices(Eigen::Matrix<double, 4, 4> M) {  
   Eigen::Vector4d p;
   Eigen::Vector4d q;
   Eigen::Vector4d r;
@@ -447,9 +410,6 @@ void Triangle::transformVertices(Eigen::Matrix<double, 4, 4> M) {
   Eigen::Vector4d a;
   Eigen::Vector4d b;
   Eigen::Vector4d c;
-  
-  //cout << "vertex1.x() equals " << vertex1.x() << endl;
-  //cout << "vertex1.y() equals " << vertex1.y() << endl;
   
   // Apply transformation for vertex1 and vertex2
   a << (double) vertex1.x(), (double) vertex1.y(), (double) vertex1.z(), 1;
@@ -460,9 +420,6 @@ void Triangle::transformVertices(Eigen::Matrix<double, 4, 4> M) {
   q = M * b;
   r = M * c;
   
-  //cout << "p is: " << endl << p << endl << "-----------" << endl;
-  //cout << "p.w() is: " << p.w() << endl;
-  
   transV1 << p.x()/p.w(), p.y()/p.w(), p.z()/p.w(); 
   transV2 << q.x()/q.w(), q.y()/q.w(), q.z()/q.w();
   transV3 << r.x()/r.w(), r.y()/r.w(), r.z()/r.w();
@@ -472,9 +429,6 @@ void Triangle::transformVertices(Eigen::Matrix<double, 4, 4> M) {
 //rasterizes triangle image by calculating barycentric coordinates
 vector<Fragment> Triangle::rasterize(vector<vector<array<double, 3>>> &pixels, std::vector<Light> lights, Camera camera, Shading shading, Color color) {
   //create bounding box
-  //cout << transV1.x() << endl;
- // cout << transV2.x() << endl;
-  
   double x0 = (double) transV1.x();
   double x1 = (double) transV2.x();
   double x2 = (double) transV3.x();
@@ -501,8 +455,6 @@ vector<Fragment> Triangle::rasterize(vector<vector<array<double, 3>>> &pixels, s
   double f01naught = ((y0 - y1) * x2) + ((x1 - x0) * y2) + (x0*y1) - (y0*x1);
   
   double alpha, beta, gamma;
-  //Color color;
-  //double pixelColor[3];
   vector<Fragment> fragments;
   for (int i=ymin; i < ymax; i++) {
     for (int j=xmin; j < xmax; j++) {
@@ -515,10 +467,6 @@ vector<Fragment> Triangle::rasterize(vector<vector<array<double, 3>>> &pixels, s
       gamma = f01/f01naught;
      
       if (alpha > 0 && beta > 0 && gamma > 0) {
-        //Color color;
-        //color.red = alpha*vertex1Color.red + beta*vertex2Color.red + gamma*vertex3Color.red;
-        //color.green = alpha*vertex1Color.green + beta*vertex2Color.green + gamma*vertex3Color.green;
-        //color.blue = alpha*vertex1Color.blue + beta*vertex2Color.blue + gamma*vertex3Color.blue;
         std::array<double,3> pixelColor = {color.red, color.green, color.blue};
         Fragment fragment;
         fragment.z = transV1.z();
@@ -529,7 +477,7 @@ vector<Fragment> Triangle::rasterize(vector<vector<array<double, 3>>> &pixels, s
         Eigen::Vector3d normal = alpha * vertex1Normal + beta * vertex2Normal + gamma * vertex3Normal;
         Color localColor;
         int numLights = lights.size();
-        //cout << numLights << endl;
+     
         localColor.red = 0;
         localColor.green = 0;
         localColor.blue = 0;
@@ -537,9 +485,11 @@ vector<Fragment> Triangle::rasterize(vector<vector<array<double, 3>>> &pixels, s
           Eigen::Vector3d light_direction = getLightDirection(lights[i], currPoint);
           Eigen::Vector3d view_direction = getViewDirection(camera.from, currPoint);
           Eigen::Vector3d h_vector = (light_direction + view_direction).normalized();
+          
           double lightIntensity = 1/sqrt(numLights);
           double diffuse = max((double) 0, (double) normal.dot(light_direction));
           double specular = pow(max((double) 0, (double) normal.dot(h_vector)), shading.shine);
+          
           localColor.red += (shading.Kd * color.red * diffuse + shading.Ks * specular) * lightIntensity;
           localColor.green += (shading.Kd * color.green * diffuse + shading.Ks * specular) * lightIntensity;
           localColor.blue += (shading.Kd * color.blue * diffuse + shading.Ks * specular) * lightIntensity;
@@ -547,11 +497,11 @@ vector<Fragment> Triangle::rasterize(vector<vector<array<double, 3>>> &pixels, s
         localColor.red = 255 * fmax(min(localColor.red, (double) 1), (double) 0);
         localColor.green = 255 * fmax(min(localColor.green, (double) 1), (double) 0);
         localColor.blue = 255 * fmax(min(localColor.blue, (double) 1), (double) 0);
+        
         fragment.color.red = localColor.red;
         fragment.color.green = localColor.green;
         fragment.color.blue = localColor.blue;
-        //cout << pixelColor[0] << ' ' << pixelColor[1] << ' ' << pixelColor[2] << endl;
-        //pixels[i][j] = pixelColor;
+        
         fragments.push_back(fragment);
       }
     }
@@ -560,7 +510,6 @@ vector<Fragment> Triangle::rasterize(vector<vector<array<double, 3>>> &pixels, s
   return fragments;
 }
 
-//unneeded but didn't delete
 double Triangle::getCameraDistance(Camera camera) {
   //get distance between vertex1 and camera.from; will probably update later but this is the current version
   double xMinusFrom = vertex1.x() - camera.from.x();
@@ -631,15 +580,12 @@ Polygon::Polygon(std::vector<Eigen::Vector3d> inputVertices, std::vector<Eigen::
     }
   //populates triangles vector
     Eigen::Vector3d baseVertex = vertices[0];
-  //cout << baseVertex << endl << endl;
     for (int i=1; i < (int) vertices.size() - 1; i++) {
       Triangle newTriangle = Triangle(baseVertex, vertices[i], vertices[i+1], true);
-      //cout << newTriangle << endl << endl;
       newTriangle.vertex1Normal = inputNormals[0];
       newTriangle.vertex2Normal = inputNormals[i];
       newTriangle.vertex3Normal = inputNormals[i+1];
       triangles.push_back(newTriangle);
-      //cout << triangles[i-1] << endl;
     }
   for (int i=0; i < (int) inputNormals.size(); i++) {
       normals.push_back(inputNormals[i]);
